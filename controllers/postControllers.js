@@ -1,41 +1,41 @@
 // * importo i dati da data.js
-const posts = require('../data/db.js');
+const connection = require('../data/db.js');
 
 // * index
 const index = (req, res) => {
-  // recupero il parametro tramite query sting
-  const tagParam = req.query.tags;
 
-  // se non c'è parametro, restituisco tutti i post
-  if (!tagParam) {
-    return res.json(posts);
-  }
+  const sql = "SELECT * FROM blog_db";
 
-  const filteredPosts = posts.filter(post => {
-    return post.tags && post.tags.some(tag => tag.toLowerCase() === tagParam.toLowerCase());
-  });
+  connection.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ error: "Errore durante l'esecuzione della query: " + err });
+    res.json(results);
+  })
 
-  res.json(filteredPosts);
 }
 
 // * show
 const show = (req, res) => {
-  console.log('show chiamato con id:', req.params.id);
-  // converto da stringa a numero
+
   const id = parseInt(req.params.id);
-  // cerco il post
-  const post = posts.find(item => item.id === id);
 
-  // faccio IF
-  if (!post) {
-    return res.status(404).json({
-      error: "404 Not Found",
-      message: "Post non trovato"
-    })
-  }
+  connection.query('select * FROM posts WHERE id = ?', [id], (err, results) => {
+    if (err) {
+      console.error('Errore nella query SELECT: ', err);
+      return res.status(500).json({ error: 'Errore server' });
+    }
 
-  // se è apposto restituisce il post
-  res.json(post);
+    if (results.length === 0) {
+      //! nessun post trovato con quell'id
+      return res.status(404).json({
+        error: "404 Not Found",
+        message: "Post non trovato"
+      });
+    }
+
+    //! restituisce il post come JSON
+    res.json(results[0]);
+  });
+
 };
 
 // * create
@@ -92,22 +92,25 @@ const destroy = (req, res) => {
 
   const id = parseInt(req.params.id);
 
-  const post = posts.find(item => item.id === id);
+  connection.query('DELETE FROM posts WHERE id = ?', [id], (err, result) => {
+    if (err) {
+      console.error('Errore nella query DELETE:', err);
+      return res.status(500).json({ error: 'Errore server' });
+    }
 
-  if (!post) {
-    return res.status(404).json({
-      error: "404 Not Found",
-      message: "Post non trovato"
-    })
-  }
+    if (result.affectedRows === 0) {
+      //! nessun post trovato con quell'id
+      return res.status(404).json({
+        error: "404 Not Found",
+        message: "Post non trovato"
+      });
+    }
 
-  posts.splice(posts.indexOf(post), 1);
+    console.log(`Post con id ${id} eliminato`);
+    res.sendStatus(204);
+  });
 
-  console.log('nuovo array');
-  console.log(posts);
-
-  res.sendStatus(204);
-}
+};
 
 module.exports = {
   index,
