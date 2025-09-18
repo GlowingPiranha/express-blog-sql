@@ -32,7 +32,13 @@ const show = (req, res) => {
       });
     }
 
+
+    const tagSql = "SELECT * FROM tags JOIN post_tag ON post_tag.tag_id WHERE post_tag.post_id = ?";
+    connection.query(tagSql, [id], (err, resultTags) => {
+      if (err) return res.status(500).json({ error: `Errore nell essecuzione della query: ${err}` });
+    })
     //! restituisce il post come JSON
+    post.tags = resultsTags;
     res.json(results[0]);
   });
 
